@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const validateUser = require('../middleware/validateUser');
+const AppError = require('../utils/AppError');
+const catchAsync = require('../utils/catchAsync');
+const validateObjectId = require('../middleware/validateObjectId');
 
 // GET all users
 router.get('/', async (req, res) => {
@@ -17,23 +20,14 @@ router.get('/', async (req, res) => {
   }
 });
 // CREATE a new user
-router.post('/', validateUser, async (req, res) => {
-   try {
+router.post('/', validateUser('create'), catchAsync(async (req, res, next) => {
+ 
   const user = await User.create(req.body);
+  
   res.status(201).json(user);
-} catch (err) {
-    if (err.code === 11000) {
-    return res.status(400).json({
-      success: false,
-      message: "Email already exists"
-    });
-  }
-  res.status(400).json({
-    error: 'Error creating user',
-    details: err.message
-  });
-}
-});
+
+
+}));
 
 // GET user by ID
 router.get('/:id', async (req, res) => {
@@ -57,8 +51,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 // UPDATE user
-router.put('/:id', async (req, res) => {
-  try {
+router.put('/:id',validateObjectId, validateUser('update'), catchAsync(async (req, res, next) => {
+
     const userId = req.params.id;
     const reqData = req.body;
 
@@ -69,18 +63,13 @@ router.put('/:id', async (req, res) => {
     );
 
     if (!updatedUser) {
-      return res.status(404).json({ error: 'User not found' });
+    return next(new AppError('User not found', 404));
     }
 
     res.status(200).json(updatedUser);
 
-  } catch (err) {
-    res.status(400).json({
-      error: 'Error updating user',
-      details: err.message
-    });
   }
-});
+));
 
 // DELETE user
 router.delete('/:id', async (req, res) => {
