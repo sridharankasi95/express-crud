@@ -3,6 +3,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
+const sendEmail = require('../utils/sendEmail');
+const { json } = require('express');
+const crypto = require('crypto');
 
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -47,3 +50,74 @@ exports.login = catchAsync(async (req, res, next) => {
     token
   });
 });
+// FORGOT PASSWORD
+exports.forgotPassword = catchAsync(async (req, res, next) => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    return next(new AppError('User not found', 404));
+  }
+
+  const resetToken = user.createPasswordResetToken();
+  await user.save({ validateBeforeSave: false });
+
+  const resetURL = `${req.protocol}://${req.get(
+    'host'
+  )}/api/auth/reset-password/${resetToken}`;
+
+  const message = `
+    <p>You requested a password reset</p>
+    <p>Click the link below to reset your password:</p>
+    <a href="${resetURL}">${resetURL}</a>
+    <p>This link is valid for 10 minutes.</p>
+  `;
+
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: 'Password Reset Request',
+      message
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Reset link sent to email'
+    });
+
+  } catch (err) {
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    return next(new AppError('Email could not be sent', 500));
+  }
+});
+// RESET PASSWORD
+exports.resetPassword = catchAsync(async (req, res, next) => {
+  // check new password and confirm password match
+  if (req.body.password !== req.body.confirmPassword) {
+    return next(new AppError('Passwords do not match', 400));
+  }
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(req.params.token)
+    .digest('hex');
+  const user = await User.findOne({
+    resetPasswordToken: hashedToken,
+    resetPasswordExpires: { $gt: Date.now() }
+  });
+  if (!user) {
+    return next(new AppError('Token is invalid or has expired', 400));
+  }
+  user.password = await bcrypt.hash(req.body.password, 12);
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
+  await user.save();  
+  const token = signToken(user._id);
+  res.status(200).json({
+    success: true,
+    token
+  });
+});
+

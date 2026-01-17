@@ -5,9 +5,12 @@ const validateUser = require('../middleware/validateUser');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
 const validateObjectId = require('../middleware/validateObjectId');
+const { protect } = require('../middleware/authMiddleware');
+const { restrictTo } = require('../middleware/roleMiddleware');
+const bcrypt = require('bcryptjs');
 
 // GET all users
-router.get('/', async (req, res) => {
+router.get('/', protect, restrictTo('admin'), async (req, res) => {
   try {
 
     const users = await User.find();
@@ -20,7 +23,7 @@ router.get('/', async (req, res) => {
   }
 });
 // CREATE a new user
-router.post('/', validateUser('create'), catchAsync(async (req, res, next) => {
+router.post('/', protect, restrictTo('admin'), validateUser('create'), catchAsync(async (req, res, next) => {
  
   const user = await User.create(req.body);
   
@@ -30,7 +33,7 @@ router.post('/', validateUser('create'), catchAsync(async (req, res, next) => {
 }));
 
 // GET user by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', protect, async (req, res) => {
   try {
 
     const userId = req.params.id;
@@ -51,11 +54,12 @@ router.get('/:id', async (req, res) => {
   }
 });
 // UPDATE user
-router.put('/:id',validateObjectId, validateUser('update'), catchAsync(async (req, res, next) => {
+router.put('/:id', protect,  validateObjectId, restrictTo('admin'), validateUser('update'), catchAsync(async (req, res, next) => {
 
     const userId = req.params.id;
     const reqData = req.body;
-
+    delete reqData.password;
+    delete reqData.role;
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       reqData,
@@ -72,27 +76,21 @@ router.put('/:id',validateObjectId, validateUser('update'), catchAsync(async (re
 ));
 
 // DELETE user
-router.delete('/:id', async (req, res) => {
-  try {
+router.delete('/:id', protect, validateObjectId, restrictTo('admin'), catchAsync(async (req, res, next) => {
     const userId = req.params.id;
 
     const deletedUser = await User.findByIdAndDelete(userId);
 
     if (!deletedUser) {
-      return res.status(404).json({ error: 'User not found' });
+      return next(new AppError('User not found', 404));
     }
 
     res.status(200).json({
       message: 'User deleted successfully'
     });
 
-  } catch (err) {
-    res.status(400).json({
-      error: 'Error deleting user',
-      details: err.message
-    });
   }
-});
+));
 
 
 module.exports = router;

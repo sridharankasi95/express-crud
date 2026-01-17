@@ -7,4 +7,8 @@ const { registerSchema, loginSchema } = require('../validations/authValidation')
 router.post('/register', validate(registerSchema), authController.register);
 router.post('/login', validate(loginSchema), authController.login);
 
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password/:token', authController.resetPassword);
+
+
 module.exports = router;
