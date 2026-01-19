@@ -52,10 +52,7 @@ exports.login = catchAsync(async (req, res, next) => {
 });
 // FORGOT PASSWORD
 exports.forgotPassword = catchAsync(async (req, res, next) => {
-  res.status(200).json({
-      success: true,
-      message: 'testing'
-  });
+
   const { email } = req.body;
 
   const user = await User.findOne({ email });
