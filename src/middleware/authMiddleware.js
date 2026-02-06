@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const AppError = require('../utils/AppError');
+const appError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 
 exports.protect = catchAsync(async (req, res, next) => {
@@ -14,14 +14,14 @@ exports.protect = catchAsync(async (req, res, next) => {
   }
 
   if (!token) {
-    return next(new AppError('Not authorized', 401));
+    return next(new appError('Not authorized', 401));
   }
 
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
   const user = await User.findById(decoded.id);
   if (!user) {
-    return next(new AppError('User no longer exists', 401));
+    return next(new appError('User no longer exists', 401));
   }
 
   req.user = user;
