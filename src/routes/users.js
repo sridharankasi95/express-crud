@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const validateUser = require('../middleware/validateUser');
-const AppError = require('../utils/AppError');
+const appError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const validateObjectId = require('../middleware/validateObjectId');
 const { protect } = require('../middleware/authMiddleware');
@@ -67,7 +67,7 @@ router.put('/:id', protect,  validateObjectId, restrictTo('admin'), validateUser
     );
 
     if (!updatedUser) {
-    return next(new AppError('User not found', 404));
+    return next(new appError('User not found', 404));
     }
 
     res.status(200).json(updatedUser);
@@ -82,7 +82,7 @@ router.delete('/:id', protect, validateObjectId, restrictTo('admin'), catchAsync
     const deletedUser = await User.findByIdAndDelete(userId);
 
     if (!deletedUser) {
-      return next(new AppError('User not found', 404));
+      return next(new appError('User not found', 404));
     }
 
     res.status(200).json({

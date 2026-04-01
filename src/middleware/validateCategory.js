@@ -1,12 +1,12 @@
-const { createUserSchema, updateUserSchema } = require('../validations/userValidation');
+const { createCategorySchema, updateCategorySchema } = require('../validations/categoryValidation');
 const appError = require('../utils/appError');
 
 module.exports = (schemaType) => {
   return (req, res, next) => {
     const schema =
       schemaType === 'create'
-        ? createUserSchema
-        : updateUserSchema;
+        ? createCategorySchema
+        : updateCategorySchema;
 
     const { error, value } = schema.validate(req.body, {
       abortEarly: true,
