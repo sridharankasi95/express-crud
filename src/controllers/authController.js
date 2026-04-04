@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const AppError = require('../utils/AppError');
+const appError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const sendEmail = require('../utils/sendEmail');
 const { json } = require('express');
@@ -40,7 +40,7 @@ exports.login = catchAsync(async (req, res, next) => {
   const user = await User.findOne({ email }).select('+password');
 
   if (!user || !(await bcrypt.compare(password, user.password))) {
-    return next(new AppError('Invalid email or password', 401));
+    return next(new appError('Invalid email or password', 401));
   }
 
   const token = signToken(user._id);
@@ -61,7 +61,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 
   const user = await User.findOne({ email });
   if (!user) {
-    return next(new AppError('User not found', 404));
+    return next(new appError('User not found', 404));
   }
 
   const resetToken = user.createPasswordResetToken();
@@ -95,14 +95,14 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
     user.resetPasswordExpires = undefined;
     await user.save({ validateBeforeSave: false });
 
-    return next(new AppError('Email could not be sent', 500));
+    return next(new appError('Email could not be sent', 500));
   }
 });
 // RESET PASSWORD
 exports.resetPassword = catchAsync(async (req, res, next) => {
   // check new password and confirm password match
   if (req.body.password !== req.body.confirmPassword) {
-    return next(new AppError('Passwords do not match', 400));
+    return next(new appError('Passwords do not match', 400));
   }
   const hashedToken = crypto
     .createHash('sha256')
@@ -113,7 +113,7 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
     resetPasswordExpires: { $gt: Date.now() }
   });
   if (!user) {
-    return next(new AppError('Token is invalid or has expired', 400));
+    return next(new appError('Token is invalid or has expired', 400));
   }
   user.password = await bcrypt.hash(req.body.password, 12);
   user.resetPasswordToken = undefined;
