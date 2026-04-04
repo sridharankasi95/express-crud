@@ -35,9 +35,10 @@ exports.register = catchAsync(async (req, res, next) => {
 
 // LOGIN
 exports.login = catchAsync(async (req, res, next) => {
+  
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email }).select('+password','+name','+email');
+  const user = await User.findOne({ email }).select('+password +name +email');
 
   if (!user || !(await bcrypt.compare(password, user.password))) {
     return next(new appError('Invalid email or password', 401));
@@ -48,10 +49,11 @@ exports.login = catchAsync(async (req, res, next) => {
   res.json({
     success: true,
     token,
-      user: {
-        name: user.name,
-        email: user.email
-      }
+    user: {
+      name: user.name,
+      email: user.email
+    }
+    
   });
 });
 // FORGOT PASSWORD
