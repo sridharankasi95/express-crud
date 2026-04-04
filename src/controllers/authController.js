@@ -47,7 +47,11 @@ exports.login = catchAsync(async (req, res, next) => {
 
   res.json({
     success: true,
-    token
+    token,
+      user: {
+        name: user.name,
+        email: user.email
+      }
   });
 });
 // FORGOT PASSWORD
