@@ -37,7 +37,7 @@ exports.register = catchAsync(async (req, res, next) => {
 exports.login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email }).select('+password');
+  const user = await User.findOne({ email }).select('+password','+name','+email');
 
   if (!user || !(await bcrypt.compare(password, user.password))) {
     return next(new appError('Invalid email or password', 401));
